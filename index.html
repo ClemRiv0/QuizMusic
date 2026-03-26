@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Music Quiz</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#46178f">
+
+<style>
+body{
+  font-family:'Segoe UI',Arial,sans-serif;
+  text-align:center;
+  background:linear-gradient(135deg,#46178f,#864cbf);
+  margin:0;
+  color:white;
+}
+
+.container{
+  background:white;
+  color:#333;
+  padding:40px;
+  margin:40px auto;
+  max-width:600px;
+  border-radius:15px;
+  box-shadow:0 15px 40px rgba(0,0,0,0.3);
+  position:relative;
+}
+
+h1{color:#46178f;}
+
+button{
+  padding:14px;
+  margin:8px;
+  font-size:16px;
+  cursor:pointer;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
+}
+
+.answer{
+  width:100%;
+  color:white;
+}
+
+.country{background:#1368ce;}
+
+.selected{
+  outline:4px solid black;
+}
+
+.progress-bar{
+  background:#46178f;
+  height:20px;
+  width:0%;
+  border-radius:10px;
+}
+
+.progress-container{
+  background:#ddd;
+  border-radius:10px;
+  margin:20px 0;
+}
+
+.slider-container{
+  margin:20px 0;
+}
+
+input[type=range]{
+  width:100%;
+}
+
+#selectedYearText{
+  margin-top:10px;
+  font-weight:bold;
+}
+
+#endScreen{
+  display:none;
+  padding:40px;
+  border-radius:15px;
+  background:white;
+  color:#333;
+  box-shadow:0 15px 40px rgba(0,0,0,0.3);
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- Quiz -->
+<div id="quiz">
+
+<h1>Music Quiz 🎧</h1>
+
+<h2 id="question"></h2>
+<div id="audio"></div>
+
+<h3>🌍 Country</h3>
+<div id="countries"></div>
+
+<h3>🕰️ Choose the decade</h3>
+<div class="slider-container">
+  <input type="range" id="timeline" min="1960" max="2030" step="10" value="2000">
+  <p id="selectedYearText">🕰️ Decade choose : 2000s</p>
+</div>
+
+<br>
+<button onclick="validate()">Submit</button>
+
+<div class="progress-container">
+  <div id="progressBar" class="progress-bar"></div>
+</div>
+
+<p id="progressText"></p>
+<p>Score: <span id="score">0</span></p>
+<p>🏆 Best score: <span id="bestScore">0</span></p>
+
+</div>
+
+<!-- End Screen -->
+<div id="endScreen">
+  <h1>🎉 Quiz terminé !</h1>
+  <p id="finalScore"></p>
+  <p id="finalBest"></p>
+  <button onclick="restart()">Rejouer</button>
+</div>
+
+</div>
+
+<script>
+// 🎵 Données musicales
+const musiques = [
+{audio:"audio1.mp3", pays:"Spain", year:2010},
+{audio:"audio2.mp3", pays:"Spain", year:2000},
+{audio:"audio3.mp3", pays:"Spain", year:1980},
+{audio:"audio4.mp3", pays:"Spain", year:2010},
+{audio:"audio5.mp3", pays:"Spain", year:1960},
+{audio:"audio6.mp3", pays:"Ukraine", year:2000},
+{audio:"audio7.mp3", pays:"Ukraine", year:1960},
+{audio:"audio8.mp3", pays:"Ukraine", year:2020},
+{audio:"audio9.mp3", pays:"Ukraine", year:2020},
+{audio:"audio10.mp3", pays:"Ukraine", year:2000},
+{audio:"audio11.mp3", pays:"Denmark", year:2020},
+{audio:"audio12.mp3", pays:"Denmark", year:2000},
+{audio:"audio13.mp3", pays:"Denmark", year:1980},
+{audio:"audio14.mp3", pays:"Denmark", year:2010},
+{audio:"audio15.mp3", pays:"Denmark", year:1960},
+{audio:"audio16.mp3", pays:"France", year:1960},
+{audio:"audio17.mp3", pays:"France", year:1980},
+{audio:"audio18.mp3", pays:"France", year:2000},
+{audio:"audio19.mp3", pays:"France", year:2010},
+{audio:"audio20.mp3", pays:"France", year:1970},
+{audio:"fake1.mp3", pays:"France", year:2030},
+{audio:"fake2.mp3", pays:"Denmark", year:2030},
+{audio:"fake3.mp3", pays:"Ukraine", year:2030},
+{audio:"fake4.mp3", pays:"Spain", year:2030}
+];
+
+const paysList = ["Spain","France","Denmark","Ukraine"];
+
+let remaining = [];
+let current;
+let score = 0;
+let selectedPays = null;
+let selectedYear = 2000;
+
+const slider = document.getElementById("timeline");
+const yearDisplay = document.getElementById("selectedYearText");
+
+// Slider avec affichage "1960 and before"
+slider.oninput = () => {
+  selectedYear = parseInt(slider.value);
+  if(selectedYear === 1960){
+    yearDisplay.innerText = "🕰️ Décennie choisie : 1960 and before";
+  } else {
+    yearDisplay.innerText = "🕰️ Décennie choisie : " + selectedYear + "s";
+  }
+};
+
+function nextQuestion(){
+  if(remaining.length === 0){
+    victory();
+    return;
+  }
+  selectedPays = null;
+  current = remaining[Math.floor(Math.random() * remaining.length)];
+  document.getElementById("question").innerText = "🎧 Listen and answer";
+  document.getElementById("audio").innerHTML = `<audio controls autoplay src="${current.audio}"></audio>`;
+  generateButtons();
+  updateProgress();
+}
+
+function generateButtons(){
+  const c = document.getElementById("countries");
+  c.innerHTML = "";
+  paysList.forEach(p => {
+    let btn = document.createElement("button");
+    btn.className = "answer country";
+    btn.innerText = p;
+    btn.onclick = () => { selectedPays = p; highlight(c, btn); };
+    c.appendChild(btn);
+  });
+}
+
+function highlight(container, selectedBtn){
+  [...container.children].forEach(b => b.classList.remove("selected"));
+  selectedBtn.classList.add("selected");
+}
+
+function validate(){
+  if(!selectedPays){
+    alert("Choose a country!");
+    return;
+  }
+  let points = 0;
+  if(selectedPays === current.pays) points += 0.5;
+
+  if(current.year !== null){
+    let correctDecade = Math.floor(current.year / 10) * 10;
+    let chosenDecade = Math.floor(selectedYear / 10) * 10;
+    if(correctDecade === chosenDecade){
+      points += 0.5;
+    }
+  }
+
+  score += points;
+  remaining = remaining.filter(m => m !== current);
+  nextQuestion();
+}
+
+function updateProgress(){
+  let percent = ((musiques.length - remaining.length)/musiques.length)*100;
+  document.getElementById("progressBar").style.width = percent + "%";
+  document.getElementById("progressText").innerText = (musiques.length - remaining.length) + " / " + musiques.length;
+  document.getElementById("score").innerText = score.toFixed(1);
+  document.getElementById("bestScore").innerText = localStorage.getItem("bestScore") || 0;
+}
+
+function restart(){
+  remaining = [...musiques];
+  score = 0;
+  document.getElementById("quiz").style.display = "block";
+  document.getElementById("endScreen").style.display = "none";
+  nextQuestion();
+}
+
+function victory(){
+  let best = localStorage.getItem("bestScore") || 0;
+  if(score > best){
+    localStorage.setItem("bestScore", score);
+    best = score;
+  }
+  document.getElementById("quiz").style.display = "none";
+  document.getElementById("endScreen").style.display = "block";
+  document.getElementById("finalScore").innerText = `Score : ${score.toFixed(1)} / ${musiques.length}`;
+  document.getElementById("finalBest").innerText = `🏆 Meilleur score : ${best.toFixed(1)}`;
+}
+
+// Initialisation
+remaining = [...musiques];
+nextQuestion();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('service-worker.js');
+}
+</script>
+
+</body>
+</html>
