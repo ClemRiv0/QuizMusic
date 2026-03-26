@@ -101,6 +101,8 @@ input[type=range]{
 
 <h3>🌍 Country</h3>
 <div id="countries"></div>
+<p id="correctAnswer" style="margin-top:15px; font-weight:bold;"></p>
+<button id="nextBtn" style="display:none; padding:10px 20px; font-weight:bold;" onclick="nextQuestion()">Suivant</button>
 
 <h3>🕰️ Choose the decade</h3>
 <div class="slider-container">
@@ -186,6 +188,11 @@ function nextQuestion(){
     victory();
     return;
   }
+
+  // Réinitialiser affichage
+  document.getElementById("correctAnswer").innerText = "";
+  document.getElementById("nextBtn").style.display = "none";
+
   selectedPays = null;
   current = remaining[Math.floor(Math.random() * remaining.length)];
   document.getElementById("question").innerText = "🎧 Listen and answer";
@@ -213,9 +220,10 @@ function highlight(container, selectedBtn){
 
 function validate(){
   if(!selectedPays){
-    alert("Choose a country!");
+    alert("Choisissez un pays !");
     return;
   }
+
   let points = 0;
   if(selectedPays === current.pays) points += 0.5;
 
@@ -228,8 +236,20 @@ function validate(){
   }
 
   score += points;
+  updateProgress();
+
+  // Afficher la bonne réponse
+  document.getElementById("correctAnswer").innerText = `✅ Bonne réponse : ${current.pays}, décennie : ${Math.floor(current.year/10)*10}s`;
+
+  // Afficher le bouton Suivant
+  document.getElementById("nextBtn").style.display = "inline-block";
+
+  // Désactiver les boutons pour éviter de changer après validation
+  const buttons = document.querySelectorAll("#countries button");
+  buttons.forEach(b => b.disabled = true);
+
+  // Retirer la question de la liste restante
   remaining = remaining.filter(m => m !== current);
-  nextQuestion();
 }
 
 function updateProgress(){
